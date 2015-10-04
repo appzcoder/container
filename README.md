@@ -35,35 +35,17 @@ class A
     }
 }
 
-class B
-{
+class B { }
 
-}
+class C { }
 
-class C
-{
+class D { }
 
-}
+class Foo { }
 
-class D
-{
+class Bar { }
 
-}
-
-class Foo
-{
-	
-}
-
-class Bar
-{
-	
-}
-
-class FooBar
-{
-	
-}
+class FooBar { }
 
 // Instantiate the container
 $container = Container::getInstance();
@@ -74,14 +56,17 @@ $classA = $container->make('A', 'A', ['sohel']);
 // Calling a Setter Method of a instance with parameters
 var_dump($container->call([$classA, 'setterMethod'], ['sohel amin']));
 
+// Registering a class by given the class name and index
+$container->make('ClassIndex', 'Foo');
+
 // Registering a instance with closure
-$this->app->make('Foo', function() {
+$container->make('Bar', function () {
 	return new Bar();
 });
 
 // Registering a instance with a name
 $fooBar = new FooBar();
-$this->app->instance('FooBar', $fooBar);
+$container->instance('FooBar', $fooBar);
 
 // Registering a class via container's array
 $container['D'] = new D;
