@@ -42,21 +42,21 @@ class Container implements ArrayAccess
     /**
      * Register class to create instances based on types.
      *
-     * @param  string $abstract
-     * @param  \Closure|string|object $concrete
+     * @param  string $name
+     * @param  \Closure|string|object $class
      * @param  array  $parameters
      * @return object
      */
-    public function make($abstract, $concrete = null, array $parameters = [])
+    public function make($name, $class = null, array $parameters = [])
     {
-        if (isset($this->instances[$abstract])) {
-            return $this->instances[$abstract];
-        } elseif (isset($concrete) && is_string($concrete)) {
-            return $this->instances[$abstract] = $this->build($concrete, $parameters);
-        } elseif (isset($concrete) && (is_object($concrete) || $concrete instanceof Closure)) {
-            return $this->instances[$abstract] = $concrete;
+        if (isset($this->instances[$name])) {
+            return $this->instances[$name];
+        } elseif (isset($class) && class_exists($class)) {
+            return $this->instances[$name] = $this->build($class, $parameters);
+        } elseif (isset($class) && (is_object($class) || $class instanceof Closure)) {
+            return $this->instances[$name] = $class;
         } else {
-            return $this->instances[$abstract] = $this->build($abstract, $parameters);
+            return $this->instances[$name] = $this->build($name, $parameters);
         }
     }
 
