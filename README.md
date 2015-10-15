@@ -20,34 +20,34 @@ Dependency Injection Container
 class Foo // Has dependencies
 {
     protected $bar;
-    protected $anotherClass;
+    protected $fooBar;
     protected $name;
 
-    public function __construct(Bar $bar, $name)
+    public function __construct(Bar $bar, $name='Sohel Amin', $param2=null) // Dependency Injected
     {
         $this->bar = $bar;
         $this->name = $name;
     }
 
-    public function setterMethod(AnotherClass $anotherClass)
+    public function setterMethod(FooBar $fooBar) // Dependency Injected on method
     {
-        return $this->anotherClass = $anotherClass;
+        return $this->fooBar = $fooBar;
     }
 }
 
-class FooBar { } // No dependencies
+class Bar { } // No dependencies
 
-class AnotherClass { } // No dependencies
+class FooBar { } // No dependencies
 
 
 // Instantiate the container
-$container = Container::getInstance();
+$container = Appzcoder\Container\Container::getInstance();
 
 // Registering class with dependencies
 $container->make('Foo');
 
 // Registering class with another name
-$container->make('foo', 'Foo');
+$container->make('foo', 'Bar');
 
 // Binding a closure object with a name
 $container->make('FooBar', function () {
@@ -61,7 +61,7 @@ $container->make('Foo', 'Foo', ['param 1', 'param 2']);
 $instance = new FooBar();
 $container->instance('FooBar', $instance);
 
-// Binding an instance/orbject with container's array
+// Binding an instance/object with container's array
 $container['FooBar'] = new FooBar();
 
 // Calling a setter method with dependencies
