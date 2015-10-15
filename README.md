@@ -17,62 +17,60 @@ Dependency Injection Container
 ## Usage
 
 ```php
-class A
+class Foo // Has dependencies
 {
-    protected $b;
-    protected $c;
+    protected $bar;
+    protected $anotherClass;
     protected $name;
 
-    public function __construct(B $b, $name)
+    public function __construct(Bar $bar, $name)
     {
-        $this->b = $b;
+        $this->bar = $bar;
         $this->name = $name;
     }
 
-    public function setterMethod(C $c)
+    public function setterMethod(AnotherClass $anotherClass)
     {
-        return $this->c = $c;
+        return $this->anotherClass = $anotherClass;
     }
 }
 
-class B { }
+class FooBar { } // No dependencies
 
-class C { }
+class AnotherClass { } // No dependencies
 
-class D { }
-
-class Foo { }
-
-class Bar { }
-
-class FooBar { }
 
 // Instantiate the container
 $container = Container::getInstance();
 
-// Registering class A with it's dependency with parameters
-$classA = $container->make('A', 'A', ['sohel']);
+// Registering class with dependencies
+$container->make('Foo');
 
-// Calling a Setter Method of a instance with parameters
-var_dump($container->call([$classA, 'setterMethod'], ['sohel amin']));
+// Registering class with another name
+$container->make('foo', 'Foo');
 
-// Registering a class by given the class name and index
-$container->make('ClassIndex', 'Foo');
-
-// Registering a instance with closure
-$container->make('Bar', function () {
-	return new Bar();
+// Binding a closure object with a name
+$container->make('FooBar', function () {
+    return new FooBar();
 });
 
-// Registering a instance with a name
-$fooBar = new FooBar();
-$container->instance('FooBar', $fooBar);
+// Registering class with parameters
+$container->make('Foo', 'Foo', ['param 1', 'param 2']);
 
-// Registering a class via container's array
-$container['D'] = new D;
+// Binding an instance with a name
+$instance = new FooBar();
+$container->instance('FooBar', $instance);
 
-// Getting a instance from container's array
-$classD = $container['D'];
+// Binding an instance/orbject with container's array
+$container['FooBar'] = new FooBar();
+
+// Calling a setter method with dependencies
+$instance = $container->make('Foo', 'Foo', ['param 1', 'param 2']);
+$container->call([$instance, 'setterMethod'], ['param 1', 'param 2']);
+
+// Accessing container or getting instances
+$instance1 = $container->make('Foo');
+$instance2 = $container['Foo']; // For this should have registered or bounded "Foo"
 
 ```
 
