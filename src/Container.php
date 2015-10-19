@@ -51,7 +51,7 @@ class Container implements ArrayAccess
     {
         if (isset($this->instances[$name])) {
             return $this->instances[$name];
-        } elseif (isset($class) && class_exists($class)) {
+        } elseif (isset($class) && is_string($class) && class_exists($class)) {
             return $this->instances[$name] = $this->build($class, $parameters);
         } elseif (isset($class) && (is_object($class) || $class instanceof Closure)) {
             return $this->instances[$name] = $class;
