@@ -4,19 +4,19 @@ namespace Appzcoder\Container;
 
 use ArrayAccess;
 use Closure;
+use Exception;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionMethod;
 
 class Container implements ArrayAccess
 {
-
     /**
-     * Instance of this class.
+     * Container's definitions.
      *
-     * @var static
+     * @var array
      */
-    protected static $instance;
+    protected $definitions = [];
 
     /**
      * Container's instances.
@@ -26,38 +26,101 @@ class Container implements ArrayAccess
     protected $instances = [];
 
     /**
-     * Let the container access globally.
+     * Container's parameters.
      *
-     * @return static
+     * @var array
      */
-    public static function getInstance()
-    {
-        if (null === static::$instance) {
-            static::$instance = new static();
-        }
+    protected $parameters = [];
 
-        return static::$instance;
+    /**
+     * Set/Register a class into this container.
+     *
+     * @param  string $name
+     * @param  string $name (optional)
+     * @param  string $params (optional)
+     *
+     * @return void
+     */
+    public function set($name, $class = null, $params = [])
+    {
+        if (isset($name) && isset($class)) {
+            if (!class_exists($class)) {
+                throw new Exception("Your given [$class] is not exist.");
+            } else {
+                $this->definitions[$name] = $class;
+
+                if (!empty($params)) {
+                    $this->parameters[$name] = $params;
+                }
+            }
+        } else {
+            if (!class_exists($name)) {
+                throw new Exception("Your given [$name] is not exist.");
+            } else {
+                $this->definitions[$name] = $name;
+            }
+        }
     }
 
     /**
-     * Register class to create instances based on types.
+     * Get instance by given a class name or alias name.
      *
      * @param  string $name
-     * @param  \Closure|string|object $class
-     * @param  array  $parameters
-     * @return object
+     *
+     * @return object|null
      */
-    public function make($name, $class = null, array $parameters = [])
+    public function get($name)
     {
         if (isset($this->instances[$name])) {
             return $this->instances[$name];
-        } elseif (isset($class) && is_string($class) && class_exists($class)) {
-            return $this->instances[$name] = $this->build($class, $parameters);
-        } elseif (isset($class) && (is_object($class) || $class instanceof Closure)) {
-            return $this->instances[$name] = $class;
+        } elseif (isset($this->definitions[$name])) {
+            return $this->resolve($name);
         } else {
-            return $this->instances[$name] = $this->build($name, $parameters);
+            return null;
         }
+    }
+
+    /**
+     * Resolve or instantiate object of given name.
+     *
+     * @param  string $name
+     *
+     * @return object
+     */
+    protected function resolve($name)
+    {
+        $class = $this->definitions[$name];
+
+        $parameters = isset($this->parameters[$name]) ? $this->parameters[$name] : [];
+
+        $reflection = new ReflectionClass($class);
+
+        if (!$reflection->isInstantiable()) {
+            throw new Exception("Your given [$class] is not instantiable.");
+        }
+
+        $dependencies = $this->getDependencies($class);
+        $instances = [];
+
+        foreach ($dependencies as $key => $class) {
+            $offset = is_string($key) ? $key : $class;
+
+            if (isset($this->instances[$offset])) {
+                $instances[$offset] = $this->instances[$offset];
+            } else {
+                $this->set($offset, $class);
+
+                $instances[$offset] = $this->get($offset);
+            }
+        }
+
+        $parameters = array_merge($instances, $parameters);
+
+        $object = $reflection->newInstanceArgs($parameters);
+
+        $this->setInstance($name, $object);
+
+        return $object;
     }
 
     /**
@@ -65,17 +128,18 @@ class Container implements ArrayAccess
      *
      * @param  string $name
      * @param  object $instance
-     * @return object
+     *
+     * @return void
      *
      * @throws \Exception
      */
-    public function instance($name, $instance)
+    public function setInstance($name, $instance)
     {
-        if (is_object($instance)) {
-            return $this->instances[$name] = $instance;
+        if (is_object($instance) || $instance instanceof Closure) {
+            $this->instances[$name] = $instance;
+        } else {
+            throw new Exception("Your given instance is not an object or closure.");
         }
-
-        throw new \Exception("Your given instance is not an object.");
     }
 
     /**
@@ -83,47 +147,30 @@ class Container implements ArrayAccess
      *
      * @param  array $callback
      * @param  array $parameters
+     *
      * @return void
      */
     public function call($callback, array $parameters = [])
     {
         $dependencies = $this->getMethodDependencies($callback);
-        $instances = $this->makeBulk($dependencies);
+
+        $instances = [];
+        foreach ($dependencies as $dependency) {
+            $this->set($dependency);
+
+            $instances[$dependency] = $this->resolve($dependency);
+        }
+
         $parameters = array_merge($instances, $parameters);
 
         return call_user_func_array($callback, $parameters);
     }
 
     /**
-     * Instantiate object of given class.
-     *
-     * @param  string $class
-     * @param  array  $parameters
-     * @return object
-     *
-     * @throws \Exception
-     */
-    protected function build($class, array $parameters = [])
-    {
-        $reflection = new ReflectionClass($class);
-
-        if (!$reflection->isInstantiable()) {
-            throw new \Exception("Your given [$class] is not instantiable.");
-        }
-
-        $dependencies = $this->getDependencies($class);
-        $instances = $this->makeBulk($dependencies);
-        $parameters = array_merge($instances, $parameters);
-
-        $object = $reflection->newInstanceArgs($parameters);
-
-        return $object;
-    }
-
-    /**
      * Get all constructor's dependencies by given class.
      *
      * @param  string $class
+     *
      * @return array
      */
     protected function getDependencies($class)
@@ -148,6 +195,7 @@ class Container implements ArrayAccess
      * Get all dependencies of a given method.
      *
      * @param  callable|array $callback
+     *
      * @return array
      */
     protected function getMethodDependencies($callback)
@@ -172,74 +220,65 @@ class Container implements ArrayAccess
     }
 
     /**
-     * Make bulk instances of given array of classes.
-     *
-     * @param  array $classes
-     * @return array
-     */
-    public function makeBulk(array $classes)
-    {
-        $instances = [];
-        foreach ($classes as $key => $class) {
-            $offset = is_string($key) ? $key : $class;
-            $instances[$offset] = $this->make($offset, $class);
-        }
-
-        return $instances;
-    }
-
-    /**
-     * Clear all registered instances or classes.
+     * Clear the container.
      *
      * @return void
      */
     public function clear()
     {
+        $this->definitions = [];
         $this->instances = [];
+        $this->parameters = [];
     }
 
     /**
      * Determine if a given offset exists.
      *
      * @param  string $key
+     *
      * @return boolean
      */
     public function offsetExists($key)
     {
-        return isset($this->instances[$key]);
+        return (isset($this->definitions[$key]) || isset($this->instances[$key]));
     }
 
     /**
-     * Get the value at a given offset.
+     * Get the value by given a offset.
      *
      * @param  string $key
+     *
      * @return object
      */
     public function offsetGet($key)
     {
-        return isset($this->instances[$key]) ? $this->instances[$key] : null;
+        return $this->get($key);
     }
 
     /**
-     * Set the value at a given offset.
+     * Set the value by given a offset.
      *
      * @param  string $key
      * @param  string $value
+     *
      * @return object
      */
     public function offsetSet($key, $value)
     {
-        return $this->make($key, $value);
+        return $this->setInstance($key, $value);
     }
 
     /**
      * Unset the value at a given offset.
      *
      * @param  string $key
+     *
      * @return object
      */
     public function offsetUnset($key)
     {
+        unset($this->definitions[$key]);
         unset($this->instances[$key]);
+        unset($this->parameters[$key]);
     }
 }
