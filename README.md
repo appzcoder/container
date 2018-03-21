@@ -1,5 +1,5 @@
-# Dependency Injection Container
-Dependency Injection Container
+# DI Container
+> Dependency Injection Container
 
 
 ## Installation
@@ -75,6 +75,6 @@ $instance2 = $container['Foo']; // For this should have registered or bounded "F
 
 ```
 
-##Author
+## Author
 
 [Sohel Amin](http://www.sohelamin.com)

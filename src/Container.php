@@ -2,6 +2,7 @@
 
 namespace Appzcoder\Container;
 
+use Psr\Container\ContainerInterface;
 use ArrayAccess;
 use Closure;
 use Exception;
@@ -9,7 +10,7 @@ use ReflectionClass;
 use ReflectionFunction;
 use ReflectionMethod;
 
-class Container implements ArrayAccess
+class Container implements ContainerInterface, ArrayAccess
 {
     /**
      * Container's definitions.
@@ -46,19 +47,19 @@ class Container implements ArrayAccess
         if (isset($name) && isset($class)) {
             if (!class_exists($class)) {
                 throw new Exception("Your given [$class] is not exist.");
-            } else {
-                $this->definitions[$name] = $class;
+            }
 
-                if (!empty($params)) {
-                    $this->parameters[$name] = $params;
-                }
+            $this->definitions[$name] = $class;
+
+            if (!empty($params)) {
+                $this->parameters[$name] = $params;
             }
         } else {
             if (!class_exists($name)) {
                 throw new Exception("Your given [$name] is not exist.");
-            } else {
-                $this->definitions[$name] = $name;
             }
+
+            $this->definitions[$name] = $name;
         }
     }
 
@@ -78,6 +79,18 @@ class Container implements ArrayAccess
         } else {
             return null;
         }
+    }
+
+    /**
+     * Determine if a given offset exists.
+     *
+     * @param  string $key
+     *
+     * @return boolean
+     */
+    public function has($key)
+    {
+        return (isset($this->definitions[$key]) || isset($this->instances[$key]));
     }
 
     /**
@@ -180,7 +193,7 @@ class Container implements ArrayAccess
         $reflection = new ReflectionClass($class);
         $constructor = $reflection->getConstructor();
 
-        if ($constructor !== null) {
+        if ($constructor) {
             foreach ($constructor->getParameters() as $param) {
                 if ($param->getClass()) {
                     $dependencies[] = $param->getClass()->getName();

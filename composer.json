@@ -5,7 +5,7 @@
     "keywords": [
         "container",
         "di container"
-    ],    
+    ],
     "authors": [
         {
             "name": "Sohel Amin",
@@ -14,13 +14,13 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0"
+        "php": ">=5.4.0",
+        "psr/container": "^1.0"
     },
     "autoload": {
         "psr-4": {
             "Appzcoder\\Container\\": "src/"
         }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    "minimum-stability": "dev"
 }
